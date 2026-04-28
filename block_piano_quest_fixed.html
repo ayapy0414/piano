@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ブロックピアノクエスト 修正版</title>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    body {
+      margin: 0;
+      font-family: system-ui, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      background: #222;
+      color: #fff;
+      text-align: center;
+      touch-action: manipulation;
+    }
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(#8fd3ff 0 58%, #5fbf55 58% 100%);
+    }
+    header { padding: 16px 10px 8px; text-shadow: 2px 2px #333; }
+    h1 { margin: 0; font-size: clamp(24px, 6vw, 42px); }
+    .world {
+      flex: 1;
+      min-height: 230px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      padding-bottom: 42px;
+    }
+    .ground {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 70px;
+      background: linear-gradient(#43a047 0 18px, #8b5a2b 18px 100%);
+      border-top: 4px solid #2e7d32;
+    }
+    .building {
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(8, 34px);
+      grid-auto-rows: 34px;
+      gap: 3px;
+      align-content: end;
+      min-height: 150px;
+    }
+    .block {
+      width: 34px;
+      height: 34px;
+      border: 3px solid rgba(0,0,0,.25);
+      box-shadow: inset 4px 4px rgba(255,255,255,.18), inset -4px -4px rgba(0,0,0,.18);
+      animation: pop .2s ease-out;
+    }
+    .wood { background: #a66a2c; }
+    .stone { background: #9e9e9e; }
+    .gold { background: #ffcc33; }
+    @keyframes pop { from { transform: scale(.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .panel {
+      background: rgba(31, 43, 54, .94);
+      padding: 12px 8px 16px;
+      border-top: 5px solid rgba(255,255,255,.2);
+    }
+    .status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .badge {
+      background: #111827;
+      border: 3px solid #374151;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 800;
+      min-width: 100px;
+    }
+    .message {
+      background: #fff8c7;
+      color: #333;
+      border: 4px solid #5a4216;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 900;
+      min-width: 240px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    button {
+      font-family: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .control {
+      background: #ffcc33;
+      color: #3b2a00;
+      border: 4px solid #8c6a00;
+      border-radius: 8px;
+      padding: 12px 18px;
+      box-shadow: 0 5px 0 #5d4700;
+      font-size: 16px;
+    }
+    .control:active { transform: translateY(4px); box-shadow: 0 1px 0 #5d4700; }
+
+    .keyboard-wrap { overflow-x: auto; padding: 4px 0; }
+    .keyboard {
+      position: relative;
+      display: inline-flex;
+      height: 180px;
+      min-width: 560px;
+      padding: 0 6px;
+    }
+    .white-key {
+      width: 70px;
+      height: 175px;
+      background: #f6f1dd;
+      border: 4px solid #8a7f62;
+      border-radius: 0 0 10px 10px;
+      margin: 0 -1px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 14px;
+      color: #333;
+      font-size: 24px;
+    }
+    .black-key {
+      position: absolute;
+      top: 0;
+      width: 42px;
+      height: 105px;
+      background: #23202f;
+      border: 4px solid #0e0d15;
+      border-radius: 0 0 8px 8px;
+      z-index: 3;
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+      font-size: 13px;
+    }
+    .pos-cs { left: 54px; }
+    .pos-ds { left: 124px; }
+    .pos-fs { left: 264px; }
+    .pos-gs { left: 334px; }
+    .pos-as { left: 404px; }
+
+    .correct { background: #fff176 !important; transform: translateY(4px); }
+    .wrong { background: #ff8a80 !important; animation: shake .18s; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    .hint { margin-top: 8px; font-size: 13px; color: #dbeafe; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>ブロックピアノクエスト</h1>
+      <div>音をきいて、ただしい鍵盤をおそう！</div>
+    </header>
+
+    <main class="world">
+      <div class="building" id="building"></div>
+      <div class="ground"></div>
+    </main>
+
+    <section class="panel">
+      <div class="status">
+        <div class="badge">レベル <span id="level">1</span></div>
+        <div class="badge">れんぞく <span id="combo">0</span></div>
+        <div class="message" id="message">スタートをおしてね</div>
+      </div>
+
+      <div class="controls">
+        <button type="button" class="control" id="startBtn">スタート</button>
+        <button type="button" class="control" id="repeatBtn">もういちど</button>
+        <button type="button" class="control" id="resetBtn">リセット</button>
+      </div>
+
+      <div class="keyboard-wrap">
+        <div class="keyboard">
+          <button type="button" class="white-key key" data-note="C4">ド</button>
+          <button type="button" class="white-key key" data-note="D4">レ</button>
+          <button type="button" class="white-key key" data-note="E4">ミ</button>
+          <button type="button" class="white-key key" data-note="F4">ファ</button>
+          <button type="button" class="white-key key" data-note="G4">ソ</button>
+          <button type="button" class="white-key key" data-note="A4">ラ</button>
+          <button type="button" class="white-key key" data-note="B4">シ</button>
+          <button type="button" class="white-key key" data-note="C5">ド</button>
+
+          <button type="button" class="black-key key pos-cs" data-note="C#4">ド#</button>
+          <button type="button" class="black-key key pos-ds" data-note="D#4">レ#</button>
+          <button type="button" class="black-key key pos-fs" data-note="F#4">ファ#</button>
+          <button type="button" class="black-key key pos-gs" data-note="G#4">ソ#</button>
+          <button type="button" class="black-key key pos-as" data-note="A#4">ラ#</button>
+        </div>
+      </div>
+      <div class="hint">反応しない場合は、ファイルをSafari/Chromeで開いてください。</div>
+    </section>
+  </div>
+
+<script>
+(function () {
+  const noteFreq = {
+    "C4": 261.63, "C#4": 277.18, "D4": 293.66, "D#4": 311.13,
+    "E4": 329.63, "F4": 349.23, "F#4": 369.99, "G4": 392.00,
+    "G#4": 415.30, "A4": 440.00, "A#4": 466.16, "B4": 493.88, "C5": 523.25
+  };
+
+  const whiteNotes = ["C4","D4","E4","F4","G4","A4","B4","C5"];
+  const allNotes = Object.keys(noteFreq);
+
+  let audioCtx = null;
+  let currentNote = null;
+  let combo = 0;
+  let level = 1;
+  let started = false;
+
+  const message = document.getElementById("message");
+  const comboEl = document.getElementById("combo");
+  const levelEl = document.getElementById("level");
+  const building = document.getElementById("building");
+
+  function setMessage(text) {
+    message.textContent = text;
+  }
+
+  async function unlockAudio() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      setMessage("このブラウザは音に未対応です");
+      return false;
+    }
+
+    if (!audioCtx) audioCtx = new AudioContextClass();
+
+    if (audioCtx.state === "suspended") {
+      try { await audioCtx.resume(); } catch (e) {}
+    }
+
+    return audioCtx.state === "running";
+  }
+
+  function playNote(note, duration) {
+    if (!audioCtx || audioCtx.state !== "running") return;
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.value = noteFreq[note];
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.35, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (duration || 0.55));
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + (duration || 0.55) + 0.05);
+  }
+
+  function chooseNote() {
+    const pool = level < 3 ? whiteNotes : allNotes;
+    currentNote = pool[Math.floor(Math.random() * pool.length)];
+    setMessage("いまの音はどれかな？");
+    playNote(currentNote, 0.7);
+  }
+
+  function addBlock() {
+    const block = document.createElement("div");
+    const types = ["wood", "stone", "gold"];
+    block.className = "block " + types[building.children.length % types.length];
+    building.appendChild(block);
+
+    if (building.children.length >= 32) {
+      setTimeout(() => {
+        building.innerHTML = "";
+        setMessage("おうちが完成！もう一回つくろう！");
+      }, 300);
+    }
+  }
+
+  function flash(button, className) {
+    button.classList.add(className);
+    setTimeout(() => button.classList.remove(className), 350);
+  }
+
+  async function startGame() {
+    const ok = await unlockAudio();
+    started = true;
+
+    if (!ok) {
+      setMessage("音が出せません。Safari/Chromeで開いてください");
+      return;
+    }
+
+    combo = 0;
+    comboEl.textContent = combo;
+    setMessage("スタート！");
+    chooseNote();
+  }
+
+  async function onKey(button) {
+    await unlockAudio();
+
+    const note = button.getAttribute("data-note");
+    playNote(note, 0.35);
+
+    if (!started || !currentNote) {
+      setMessage("スタートをおしてから遊んでね");
+      return;
+    }
+
+    if (note === currentNote) {
+      combo++;
+      if (combo % 5 === 0) level++;
+      comboEl.textContent = combo;
+      levelEl.textContent = level;
+      flash(button, "correct");
+      addBlock();
+      setMessage("せいかい！ " + combo + "れんぞく！");
+      setTimeout(chooseNote, 750);
+    } else {
+      combo = 0;
+      comboEl.textContent = combo;
+      flash(button, "wrong");
+      setMessage("おしい！もういちど聞いてみよう");
+      setTimeout(() => playNote(currentNote, 0.7), 500);
+    }
+  }
+
+  function resetGame() {
+    combo = 0;
+    level = 1;
+    currentNote = null;
+    started = false;
+    building.innerHTML = "";
+    comboEl.textContent = "0";
+    levelEl.textContent = "1";
+    setMessage("リセットしたよ。スタートをおしてね");
+  }
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("repeatBtn").addEventListener("click", async function () {
+    await unlockAudio();
+    if (currentNote) {
+      setMessage("よくきいてね！");
+      playNote(currentNote, 0.7);
+    } else {
+      setMessage("まずはスタートをおしてね");
+    }
+  });
+  document.getElementById("resetBtn").addEventListener("click", resetGame);
+
+  document.querySelectorAll(".key").forEach(function (button) {
+    button.addEventListener("click", function () {
+      onKey(button);
+    });
+  });
+
+  setMessage("スタートをおしてね");
+})();
+</script>
+</body>
+</html>
