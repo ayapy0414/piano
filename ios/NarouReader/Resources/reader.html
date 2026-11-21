@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root {
+  --paper: #fbf8f1; --ink: #2a251f; --muted: #7a7062; --line: #ddd5c7; --accent: #8a4f24;
+  --size: 18px; --lh: 1.9;
+  --mincho: "Hiragino Mincho ProN", "YuMincho", serif;
+  --gothic: "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+  --font: var(--mincho);
+  --top: 64px; --bottom: 64px;
+}
+:root[data-theme="sepia"] { --paper: #f3e7cf; --ink: #3b2f22; --muted: #7d6b52; --line: #d6c6a6; }
+:root[data-theme="dark"] { --paper: #1b1913; --ink: #d9d2c4; --muted: #9a917f; --line: #3a352b; --accent: #d79a62; }
+:root[data-theme="white"] { --paper: #ffffff; --ink: #1d1d1f; --muted: #6e6e73; --line: #e2e2e2; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] { --paper: #1b1913; --ink: #d9d2c4; --muted: #9a917f; --line: #3a352b; --accent: #d79a62; }
+}
+html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); }
+body { -webkit-text-size-adjust: 100%; -webkit-user-select: text; }
+#reader {
+  position: fixed; inset: 0; font-family: var(--font); font-size: var(--size); line-height: var(--lh);
+  -webkit-overflow-scrolling: touch;
+}
+#reader.vertical {
+  writing-mode: vertical-rl; -webkit-writing-mode: vertical-rl;
+  overflow-x: auto; overflow-y: hidden;
+  padding: calc(var(--top) + env(safe-area-inset-top)) 0 calc(var(--bottom) + env(safe-area-inset-bottom));
+}
+#reader.vertical #page { height: 100%; padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left)); max-inline-size: 44em; margin-inline: auto; }
+#reader.horizontal {
+  overflow-y: auto; overflow-x: hidden;
+  padding: calc(var(--top) + env(safe-area-inset-top)) 20px calc(var(--bottom) + 24px + env(safe-area-inset-bottom));
+}
+#reader.horizontal #page { max-width: 36em; margin: 0 auto; }
+p { margin: 0; }
+.chapter { color: var(--muted); font-size: .8em; margin: 0 0 .6em; }
+h1 { font-size: 1.3em; margin: 0 0 1.5em; }
+#reader.vertical h1 { margin: 0 0 0 1.5em; padding-top: 1em; }
+.preface, .afterword { font-size: .92em; color: var(--muted); border: 0 solid var(--line); }
+#reader.horizontal .preface { border-bottom-width: 1px; padding-bottom: 1.2em; margin-bottom: 1.6em; }
+#reader.horizontal .afterword { border-top-width: 1px; padding-top: 1.2em; margin-top: 1.6em; }
+#reader.vertical .preface { border-left-width: 1px; padding-left: 1.2em; margin-left: 1.6em; }
+#reader.vertical .afterword { border-right-width: 1px; padding-right: 1.2em; margin-right: 1.6em; }
+img { max-width: 100%; height: auto; }
+#reader.vertical img { max-height: 100%; max-width: 85vw; width: auto; }
+img.gaiji { height: 1em; width: auto; vertical-align: middle; }
+rt { font-size: .5em; }
+.tcy { text-combine-upright: all; -webkit-text-combine: horizontal; }
+em.emphasisDots { font-style: normal; text-emphasis: filled sesame; -webkit-text-emphasis: filled sesame; }
+.missing { color: var(--muted); font-size: .8em; }
+.end { font-family: var(--gothic); font-size: 14px; color: var(--muted); }
+#reader.vertical .end { margin-right: 2.5em; padding-left: 2em; }
+#reader.horizontal .end { margin-top: 2.5em; text-align: center; }
+.end a { color: var(--accent); display: inline-block; margin: 8px 6px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; }
+.end a.primary { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+#reader.vertical .end a { margin: 6px 8px; padding: 14px 10px; }
+.loading { font-family: var(--gothic); color: var(--muted); text-align: center; padding: 3em 1em; writing-mode: horizontal-tb; }
+</style>
+</head>
+<body>
+<div id="reader" class="vertical"><div id="page"><p class="loading">読み込み中…</p></div></div>
+<script>
+(function () {
+  'use strict';
+  var reader = document.getElementById('reader');
+  var page = document.getElementById('page');
+  var state = { mode: 'vertical', hasNext: false, hasPrev: false };
+
+  // 次の話へ移動中は、連打しても1話ずつしか進まないようにする
+  var navigating = false;
+  function navigate(type) {
+    if (navigating) return;
+    navigating = true;
+    post({ type: type });
+  }
+
+  function post(msg) {
+    try { window.webkit.messageHandlers.reader.postMessage(msg); } catch (e) { /* ブラウザでの確認用 */ }
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  var isV = function () { return state.mode === 'vertical'; };
+  function maxScroll() { return isV() ? reader.scrollWidth - reader.clientWidth : reader.scrollHeight - reader.clientHeight; }
+  function getRatio() {
+    var m = maxScroll();
+    if (m <= 0) return 0;
+    return Math.min(1, Math.abs(isV() ? reader.scrollLeft : reader.scrollTop) / m);
+  }
+  function setRatio(r) {
+    var m = maxScroll();
+    if (isV()) reader.scrollLeft = -r * m; else reader.scrollTop = r * m;
+  }
+
+  function applySettings(s) {
+    var r = getRatio();
+    state.mode = s.mode === 'horizontal' ? 'horizontal' : 'vertical';
+    reader.className = state.mode;
+    var root = document.documentElement.style;
+    root.setProperty('--size', (s.fontSize || 18) + 'px');
+    root.setProperty('--lh', String(s.lineHeight || 1.9));
+    root.setProperty('--font', s.font === 'gothic' ? 'var(--gothic)' : 'var(--mincho)');
+    root.setProperty('--top', (s.insetTop || 64) + 'px');
+    root.setProperty('--bottom', (s.insetBottom || 64) + 'px');
+    document.documentElement.dataset.theme = s.theme || 'auto';
+    requestAnimationFrame(function () { setRatio(r); });
+  }
+
+  // 本文を表示する。p = { title, chapter, preface, body, afterword, sourceUrl, siteName, hasNext, hasPrev, ratio }
+  function render(p) {
+    navigating = false;
+    state.hasNext = !!p.hasNext;
+    state.hasPrev = !!p.hasPrev;
+    page.innerHTML =
+      (p.chapter ? '<p class="chapter">' + esc(p.chapter) + '</p>' : '') +
+      '<h1>' + esc(p.title) + '</h1>' +
+      (p.preface ? '<div class="preface">' + p.preface + '</div>' : '') +
+      '<div class="body">' + p.body + '</div>' +
+      (p.afterword ? '<div class="afterword">' + p.afterword + '</div>' : '') +
+      '<div class="end">' +
+      '<p>出典: <a href="' + esc(p.sourceUrl) + '" data-action="source">' + esc(p.siteName) + 'で開く</a></p>' +
+      (p.hasPrev ? '<a href="#" data-action="prev">前の話</a>' : '') +
+      '<a href="#" data-action="toc">目次</a>' +
+      (p.hasNext ? '<a href="#" class="primary" data-action="next">次の話へ</a>' : '<span>最新話です</span>') +
+      '</div>';
+    var target = p.ratio || 0;
+    var restore = function () { setRatio(target); };
+    requestAnimationFrame(restore);
+    Array.prototype.forEach.call(page.querySelectorAll('img'), function (img) {
+      img.addEventListener('load', function () { if (!userMoved) restore(); }, { once: true });
+      img.addEventListener('error', function () {
+        var s = document.createElement('span');
+        s.className = 'missing';
+        s.textContent = '［画像を表示できません］';
+        img.replaceWith(s);
+      }, { once: true });
+    });
+    userMoved = false;
+  }
+
+  function showMessage(text) {
+    navigating = false;
+    page.innerHTML = '<p class="loading">' + esc(text).replace(/\n/g, '<br>') + '</p>';
+  }
+
+  // ページ送り。端まで来たら次（前）の話へ
+  function pageBy(dir) {
+    var r = getRatio();
+    if (dir > 0 && (r >= 0.995 || maxScroll() <= 0)) { if (state.hasNext) navigate('next'); return; }
+    if (dir < 0 && r <= 0.005) { if (state.hasPrev) navigate('prevEnd'); return; }
+    userMoved = true;
+    if (isV()) reader.scrollBy({ left: -dir * reader.clientWidth * 0.9, behavior: 'smooth' });
+    else reader.scrollBy({ top: dir * reader.clientHeight * 0.85, behavior: 'smooth' });
+  }
+
+  var userMoved = false;
+  var timer = null;
+  reader.addEventListener('scroll', function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () { post({ type: 'position', ratio: getRatio() }); }, 400);
+  }, { passive: true });
+  reader.addEventListener('touchstart', function () { userMoved = true; }, { passive: true });
+
+  // タップ: 縦書きは左側で次ページ・右側で前ページ、横書きは下側で次・上側で前。中央はメニュー表示切替
+  reader.addEventListener('click', function (e) {
+    var a = e.target.closest('a');
+    if (a) {
+      e.preventDefault();
+      var act = a.getAttribute('data-action');
+      if (act === 'next') navigate('next');
+      else if (act === 'prev') navigate('prev');
+      else if (act === 'toc') post({ type: 'toc' });
+      else post({ type: 'open', url: a.href });
+      return;
+    }
+    if (String(window.getSelection() || '')) return;
+    var x = e.clientX / window.innerWidth, y = e.clientY / window.innerHeight;
+    if (isV()) {
+      if (x < 0.3) return pageBy(1);
+      if (x > 0.7) return pageBy(-1);
+    } else {
+      if (y > 0.7) return pageBy(1);
+      if (y < 0.3) return pageBy(-1);
+    }
+    post({ type: 'tap' });
+  });
+
+  window.NRReader = { render: render, applySettings: applySettings, pageBy: pageBy, getRatio: getRatio, showMessage: showMessage };
+  post({ type: 'ready' });
+})();
+</script>
+</body>
+</html>
