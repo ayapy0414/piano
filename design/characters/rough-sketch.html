@@ -1,0 +1,211 @@
+<title>おんぷのなかまたち</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
+<style>
+/* Layout: やわらかい紙の上に5人が横一列で並ぶ「キャラ表」。タップでその子が正解ダンス。 */
+:root{
+  --bg:#F6F3FA; --card:#FFFFFF; --fg:#3E3040; --muted:#7A6C7E; --line:#E6DDEE; --accent:#E8629A;
+  --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1F1A26; --card:#2B2434; --fg:#F2EAF5; --muted:#B5A8BC; --line:#3D3448; --accent:#FF8AB8; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1F1A26; --card:#2B2434; --fg:#F2EAF5; --muted:#B5A8BC; --line:#3D3448; --accent:#FF8AB8; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.7}
+.wrap{max-width:1200px;margin:0 auto;padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px;margin-bottom:24px}
+h1{font-size:clamp(26px,4vw,38px);font-weight:800;margin:0;letter-spacing:.02em;text-wrap:balance}
+.lead{margin:4px 0 0;color:var(--muted);font-size:14px;max-width:60ch}
+button.all{font:inherit;font-weight:800;font-size:15px;border:0;border-radius:999px;padding:12px 22px;background:var(--accent);color:#fff;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+button.all:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+button:focus-visible,.card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;min-width:0}
+.stage{position:relative;aspect-ratio:200/300;max-width:100%;border-radius:18px;background:var(--tint);perspective:600px;overflow:hidden}
+.stage::after{content:"";position:absolute;left:20%;right:20%;bottom:5%;height:5%;border-radius:50%;background:rgba(0,0,0,.08)}
+.fig{position:absolute;inset:0;transform-origin:50% 92%;animation:idle 2.6s ease-in-out infinite;animation-delay:var(--d)}
+.fig svg{width:100%;height:100%;display:block;overflow:visible}
+.name{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800;margin:0}
+.chip{width:14px;height:14px;border-radius:50%;background:var(--c);border:2px solid rgba(0,0,0,.12);flex:none}
+.role{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted);margin:-6px 0 0}
+dl{margin:0;display:grid;gap:4px;font-size:13px}
+dt{font-weight:700;color:var(--muted);font-size:11px;letter-spacing:.06em}
+dd{margin:0 0 4px}
+.note{margin-top:28px;font-size:13px;color:var(--muted);max-width:70ch}
+.arms-up,.spark{display:none}
+.dance .arms-up,.dance .spark{display:inline}
+.dance .arms-down{display:none}
+@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes spin{0%{transform:translateY(0) rotateY(0)}50%{transform:translateY(-14px) rotateY(360deg)}100%{transform:translateY(0) rotateY(720deg)}}
+@keyframes jump{0%,40%,80%,100%{transform:translateY(0) scale(1,1)}20%,60%{transform:translateY(-30px) scale(.96,1.04)}38%,78%{transform:translateY(0) scale(1.06,.94)}}
+@keyframes sway{0%,100%{transform:rotate(0)}25%{transform:rotate(-9deg) translateX(-6px)}75%{transform:rotate(9deg) translateX(6px)}}
+@keyframes pose{0%{transform:scale(1) rotate(0)}30%{transform:scale(1.1) rotate(-8deg)}60%{transform:scale(1.1) rotate(6deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes waddle{0%,100%{transform:rotate(0)}15%,45%{transform:rotate(-7deg) translateX(-5px)}30%,60%{transform:rotate(7deg) translateX(5px)}80%{transform:translateY(8px) scale(1.06,.9)}}
+.dance .fig{animation-delay:0s}
+.dance[data-k="lara"] .fig{animation:spin 1.3s ease-in-out}
+.dance[data-k="pon"] .fig{animation:jump 1.3s ease-in-out}
+.dance[data-k="fuwari"] .fig{animation:sway 1.6s ease-in-out}
+.dance[data-k="kira"] .fig{animation:pose 1.3s ease-in-out}
+.dance[data-k="moko"] .fig{animation:waddle 1.6s ease-in-out}
+@media (prefers-reduced-motion: reduce){.fig,.dance .fig{animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>おんぷのなかまたち</h1>
+      <p class="lead">キャラクター案のラフ(第5案:2頭身ちびキャラ)です。カードをタップすると、その子の正解ダンスが見られます。</p>
+    </div>
+    <button class="all" id="all" type="button">みんなで せいかいダンス</button>
+  </header>
+  <div class="grid" id="grid"></div>
+  <p class="note">方向性を確かめるためのラフ画です。色、シルエット、持ち物で5人を見分けられるかを確認してください。清書はイラストレーターへの依頼か、画像生成で行う想定です。</p>
+</div>
+
+<script>
+const L='#9C6A6E', SKIN='#FFE9DC';
+const st=(c,w=1.8)=>`stroke="${L}" stroke-width="${w}" stroke-linejoin="round" fill="${c}"`;
+function star(cx,cy,r,fill){let p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1))}return `<polygon points="${p.join(' ')}" ${st(fill,2)}/>`}
+function note(x,y,c){return `<g><ellipse cx="${x}" cy="${y}" rx="6" ry="4.3" transform="rotate(-20 ${x} ${y})" ${st(c,2)}/><path d="M${x+5},${y-2} V${y-20} q7,3 8,10" fill="none" stroke="${L}" stroke-width="2" stroke-linecap="round"/></g>`}
+function arm(x1,y1,x2,y2,c){return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${L}" stroke-width="11" stroke-linecap="round"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="7" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="5.2" ${st(SKIN,2)}/>`}
+function arms(c,propL,propR){
+  const down=[[86,128,72,180],[114,128,128,180]], up=[[86,126,36,112],[114,126,164,112]];
+  const g=(s)=>arm(...s[0],c)+arm(...s[1],c)+(propL?propL(s[0][2],s[0][3]):'')+(propR?propR(s[1][2],s[1][3]):'');
+  return `<g class="arms-down">${g(down)}</g><g class="arms-up">${g(up)}</g>`;
+}
+function legs(shoe){return `<rect x="88" y="190" width="10" height="50" rx="4" ${st(SKIN,2)}/><rect x="102" y="190" width="10" height="50" rx="4" ${st(SKIN,2)}/><ellipse cx="92" cy="242" rx="9.5" ry="6" ${st(shoe,2)}/><ellipse cx="108" cy="242" rx="9.5" ry="6" ${st(shoe,2)}/>`}
+const neck=`<rect x="95" y="106" width="10" height="18" rx="3" ${st(SKIN,2)}/>`;
+const tailLine=(d,c,w=9)=>`<path d="${d}" fill="none" stroke="${L}" stroke-width="${w+5}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+const pointEars=(c,inner,top=16)=>`<path d="M64,50 L68,${top} L94,36 Z" ${st(c)}/><path d="M70,44 L72,${top+10} L86,37 Z" fill="${inner}"/><path d="M136,50 L132,${top} L106,36 Z" ${st(c)}/><path d="M130,44 L128,${top+10} L114,37 Z" fill="${inner}"/>`;
+const roundEars=(c,inner,r=13,y=36)=>`<circle cx="68" cy="${y}" r="${r}" ${st(c)}/><circle cx="68" cy="${y}" r="${r*.5}" fill="${inner}"/><circle cx="132" cy="${y}" r="${r}" ${st(c)}/><circle cx="132" cy="${y}" r="${r*.5}" fill="${inner}"/>`;
+
+/* 目と口:大きな瞳(上が濃く下が明るいグラデーション)+ハイライト2つ+太いまつげ */
+function face(k,o={}){
+  const E='#3A2430', cy=88;
+  const eye=(x,side)=>{
+    if(o.wink&&side>0)return `<path d="M${x-9},${cy} Q${x},${cy-9} ${x+9},${cy}" fill="none" stroke="${E}" stroke-width="3" stroke-linecap="round"/><path d="M${x+9},${cy} l3.5,-2.5" stroke="${E}" stroke-width="2.2" stroke-linecap="round"/>`;
+    const out=x+side*11;
+    return `<ellipse cx="${x}" cy="${cy}" rx="10" ry="12.5" fill="url(#iris-${k})"/>`+
+      `<ellipse cx="${x}" cy="${cy-4}" rx="10" ry="7" fill="${E}" opacity=".35"/>`+
+      `<ellipse cx="${x}" cy="${cy+1.5}" rx="4.6" ry="6" fill="#2A1A24" opacity=".5"/>`+
+      `<ellipse cx="${x+side*-1+3.4}" cy="${cy-5}" rx="3.8" ry="4.6" fill="#fff"/><circle cx="${x-3.4}" cy="${cy+6}" r="2" fill="#fff"/><circle cx="${x+4.2}" cy="${cy+5}" r="1" fill="#fff"/>`+
+      `<path d="M${x-11},${cy-6} Q${x},${cy-18} ${x+11},${cy-6}" fill="none" stroke="${E}" stroke-width="3.6" stroke-linecap="round"/>`+
+      `<path d="M${out},${cy-6} l${side*4},-3.6 M${out-side*1.4},${cy-3} l${side*4},-1" stroke="${E}" stroke-width="2.2" stroke-linecap="round"/>`+
+      `<path d="M${x-6},${cy+14} Q${x},${cy+15.5} ${x+6},${cy+14}" fill="none" stroke="${E}" stroke-width="1.1" opacity=".4" stroke-linecap="round"/>`;
+  };
+  const my=104;
+  const mouths={
+    open:`<path d="M96,${my} Q100,${my+7} 104,${my} Z" fill="#C9485E" stroke="${L}" stroke-width="1.2" stroke-linejoin="round"/><ellipse cx="100" cy="${my+3.6}" rx="2.4" ry="1.4" fill="#FF9FB0"/>`,
+    big:`<path d="M95,${my-1} Q100,${my+9} 105,${my-1} Z" fill="#C9485E" stroke="${L}" stroke-width="1.2" stroke-linejoin="round"/><ellipse cx="100" cy="${my+5}" rx="2.8" ry="1.7" fill="#FF9FB0"/>`,
+    small:`<path d="M97.5,${my} Q100,${my+3.5} 102.5,${my} Z" fill="#C9485E" stroke="${L}" stroke-width="1.2"/>`,
+    cat:`<path d="M95,${my} q2.5,3 5,0 q2.5,3 5,0" fill="none" stroke="${L}" stroke-width="1.6" stroke-linecap="round"/>`
+  };
+  return `<ellipse cx="100" cy="74" rx="40" ry="37" ${st(SKIN)}/>`+
+    `<ellipse cx="100" cy="56" rx="34" ry="12" fill="#F2C9B8" opacity=".5"/>`+
+    `<ellipse cx="74" cy="101" rx="8" ry="4.5" fill="url(#blush)"/><ellipse cx="126" cy="101" rx="8" ry="4.5" fill="url(#blush)"/>`+
+    eye(83,-1)+eye(117,1)+`<circle cx="100" cy="99" r=".9" fill="#E0A090"/>`+mouths[o.mouth||'open'];
+}
+const HT='transform="translate(100 72) scale(.67) translate(-100 -96)"';
+const BANGS='M44,100 C40,50 70,34 100,34 C130,34 160,50 156,100 C150,82 140,72 128,70 C122,82 110,84 100,76 C90,86 76,84 70,72 C58,76 50,86 44,100 Z';
+const SIDEPART='M42,108 C36,52 68,32 104,34 C138,36 162,56 158,108 C152,86 140,74 122,66 C108,80 82,84 58,82 C50,90 45,98 42,108 Z';
+const bangs=(fill,d=BANGS)=>`<g ${HT}><path d="${d}" ${st(fill,3.6)}/></g>`;
+const shine=`<path d="M74,46 Q100,36 126,46" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".55"/><path d="M80,52 Q86,49 92,49" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".5"/>`;
+/* 頭部を首元を支点に1.3倍:2.5頭身くらいのちびキャラ比率 */
+const HEAD='transform="translate(100 110) scale(1.6) translate(-100 -110)"';
+function svg(k,c,back,body,front,wrap='translate(20 60) scale(.8)'){
+  const defs=`<defs><linearGradient id="hair-${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.hairLight}"/><stop offset=".6" stop-color="${c.hair}"/></linearGradient>`+
+   `<linearGradient id="iris-${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.iris[0]}"/><stop offset=".55" stop-color="${c.iris[1]}"/><stop offset="1" stop-color="${c.iris[2]}"/></linearGradient>`+
+   `<radialGradient id="blush"><stop offset="0" stop-color="#FF8FAA" stop-opacity=".75"/><stop offset="1" stop-color="#FF8FAA" stop-opacity="0"/></radialGradient></defs>`;
+  return `<svg viewBox="0 0 200 300" aria-hidden="true">${defs}<g transform="${wrap}"><g ${HEAD}>${back}</g>${body}<g ${HEAD}>${front}</g></g></svg>`;
+}
+
+const chars=[
+ {k:'lara',name:'ららちゃん',c:'#FF8FB8',tint:'#FFE4EF',role:'リーダー/読譜の案内役',
+  look:'ねこの女の子。ねこみみ、リボンを結んだしっぽ、ハート柄のチュールワンピース',
+  ok:'つま先立ちでくるくるターン',
+  draw(){const k='lara',H=`url(#hair-${k})`;return svg(k,{hair:'#8E5638',hairLight:'#C48A62',iris:['#6A3A2E','#C0785A','#F4C59A']},
+   pointEars('#8E5638','#FFC4DA')+`<path d="M60,72 C60,28 140,28 140,72 L143,124 Q132,132 126,118 L124,96 H76 L74,118 Q68,132 57,124 Z" ${st(H)}/>`,
+   tailLine('M112,166 C150,170 160,130 144,112 C136,104 150,96 156,104','#8E5638')+`<g transform="translate(30 132)"><path d="M126,38 l-10,-7 l1,14 Z" ${st('#FF5C95',2)}/><path d="M126,38 l10,-7 l-1,14 Z" ${st('#FF5C95',2)}/><circle cx="126" cy="38" r="3.5" ${st('#FFC4DA',2)}/></g>`+
+   arms(SKIN)+legs('#FF8FB8')+`<path d="M87,234 l11,-5 M103,234 l11,-5" stroke="#FF5C95" stroke-width="2"/>`+neck+
+   `<path d="M84,120 Q100,115 116,120 L118,166 H82 Z" ${st('#FF8FB8')}/><path d="M92,120 L100,130 L108,120" ${st('#FFFFFF',2)}/>`+
+   `<ellipse cx="100" cy="174" rx="44" ry="12" ${st('#FFD6E5')}/><ellipse cx="100" cy="166" rx="34" ry="8" ${st('#FF8FB8')}/>`+
+   `<path d="M92,140 c0,-4 5,-4 5,0 c0,-4 5,-4 5,0 c0,4 -5,7 -5,8 c0,-1 -5,-4 -5,-8 Z" fill="#fff" transform="translate(1 0)"/>`,
+   face(k)+bangs(H,SIDEPART)+shine+
+   `<g transform="translate(-2 -4)"><path d="M118,40 l-9,-6 l1,12 Z" ${st('#FF5C95',2)}/><path d="M118,40 l9,-6 l-1,12 Z" ${st('#FF5C95',2)}/><circle cx="118" cy="40" r="3.2" ${st('#FFC4DA',1.8)}/></g>`+
+   `<g class="spark">${star(36,50,7,'#FFD54A')}${note(164,40,'#FF5C95')}</g>`)}},
+ {k:'pon',name:'ぽんちゃん',c:'#FFA24C',tint:'#FFEBD6',role:'リズム担当',
+  look:'たぬきの女の子。まるいみみ、しまもようのしっぽ、首にヘッドホン、パーカーとプリーツスカート',
+  ok:'ジャンプしながらタンバリンをシャン!しっぽもぽんっと揺れる',
+  draw(){const k='pon',H=`url(#hair-${k})`;
+   const tamb=(x,y)=>{const cx=x+9,cy=y-5;let j='';for(let i=0;i<6;i++){const a=i*Math.PI/3;j+=`<circle cx="${(cx+14*Math.cos(a)).toFixed(1)}" cy="${(cy+14*Math.sin(a)).toFixed(1)}" r="2.8" ${st('#FFD54A',1.6)}/>`}return `<circle cx="${cx}" cy="${cy}" r="12.5" ${st('#FFF1C9',2)}/>${j}`};
+   return svg(k,{hair:'#5E3B2A',hairLight:'#93684C',iris:['#5A3218','#B87A34','#F2C66A']},
+   roundEars('#5E3B2A','#C99A6E',11,36)+`<path d="M58,72 C58,30 142,30 142,72 L144,112 Q138,118 132,110 L130,90 H70 L68,110 Q62,118 56,112 Z" ${st(H)}/>`,
+   `<g transform="rotate(-35 134 182)"><ellipse cx="134" cy="182" rx="15" ry="27" ${st('#A8714A')}/><path d="M120,176 h28 M121,190 h26" stroke="${L}" stroke-width="5"/><ellipse cx="134" cy="206" rx="9" ry="5" fill="${L}"/></g>`+
+   legs('#FFFFFF')+`<path d="M84,245 h16 M100,245 h16" stroke="#FFA24C" stroke-width="2.5"/>`+neck+
+   `<path d="M78,166 H122 L130,198 H70 Z" ${st('#4A5B8C')}/><path d="M88,168 L85,197 M100,168 V197 M112,168 L115,197" stroke="${L}" stroke-width="1.6"/>`+
+   arms('#FFA24C',null,tamb)+
+   `<path d="M80,120 Q100,114 120,120 L123,170 H77 Z" ${st('#FFA24C')}/><rect x="88" y="150" width="24" height="12" rx="5" ${st('#FFB86E',2)}/><path d="M95,124 L94,140 M105,124 L106,140" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`+
+   `<path d="M84,118 Q100,132 116,118" fill="none" stroke="#555A66" stroke-width="4"/><rect x="79" y="112" width="9" height="12" rx="4" ${st('#555A66',2)}/><rect x="112" y="112" width="9" height="12" rx="4" ${st('#555A66',2)}/>`,
+   face(k,{mouth:'big'})+bangs(H)+shine+`<circle cx="126" cy="44" r="4" ${st('#FFA24C',2)}/>`+
+   `<g class="spark">${note(30,60,'#FFA24C')}${note(166,58,'#FFA24C')}</g>`)}},
+ {k:'fuwari',name:'ふわりちゃん',c:'#8CCFF2',tint:'#E0F2FC',role:'長い音・ゆったりリズム担当',
+  look:'ひつじの女の子。くるくるのつの、ゆるふわロングヘア、水色のロングワンピース',
+  ok:'両手を広げて、ゆらゆらスローダンス',
+  draw(){const k='fuwari',H=`url(#hair-${k})`;let w='';
+   for(let y=72;y<=140;y+=17){w+=`<circle cx="62" cy="${y}" r="15" ${st('#C9B5E6')}/><circle cx="138" cy="${y}" r="15" ${st('#C9B5E6')}/>`}
+   return svg(k,{hair:'#BFA8E4',hairLight:'#EDE4FA',iris:['#4A3C96','#8C7CE0','#D6CCFF']},
+   w+`<path d="M60,70 C60,28 140,28 140,70 L146,140 H54 Z" fill="#C9B5E6"/><circle cx="100" cy="70" r="42" ${st(H)}/>`,
+   arms(SKIN)+legs('#3E5A8A')+neck+
+   `<path d="M82,156 H118 L136,214 q-9,6 -18,0 q-9,6 -18,0 q-9,6 -18,0 q-9,6 -18,0 Z" ${st('#8CCFF2')}/><path d="M68,198 Q100,205 132,198" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round"/>`+
+   `<path d="M84,120 Q100,115 116,120 L118,160 H82 Z" ${st('#8CCFF2')}/><path d="M90,119 L100,128 L110,119" ${st('#FFFFFF',2)}/>`+
+   `<circle cx="85" cy="125" r="8" ${st('#B5E1F7',2)}/><circle cx="115" cy="125" r="8" ${st('#B5E1F7',2)}/>`,
+   face(k,{mouth:'small'})+bangs(H)+shine+
+   `<circle cx="62" cy="52" r="11" ${st('#FFF3DC')}/><path d="M62,52 m-6,0 a6,6 0 1,1 6,6 a3,3 0 1,1 -3,-3" fill="none" stroke="${L}" stroke-width="2"/><circle cx="138" cy="52" r="11" ${st('#FFF3DC')}/><path d="M138,52 m6,0 a6,6 0 1,0 -6,6 a3,3 0 1,0 3,-3" fill="none" stroke="${L}" stroke-width="2"/>`+
+   `<path d="M100,33 L84,22 L86,42 Z" ${st('#5FB4E3',2)}/><path d="M100,33 L116,22 L114,42 Z" ${st('#5FB4E3',2)}/><circle cx="100" cy="33" r="4.5" ${st('#8CCFF2',2)}/>`+
+   `<g class="spark"><ellipse cx="30" cy="56" rx="14" ry="8" fill="#fff" stroke="${L}" stroke-width="2"/><ellipse cx="170" cy="150" rx="12" ry="7" fill="#fff" stroke="${L}" stroke-width="2"/></g>`)}},
+ {k:'kira',name:'きらちゃん',c:'#FFD54A',tint:'#FFF5CC',role:'高い音担当',
+  look:'きつねの女の子。とがったみみ、ふさふさしっぽ、ツインテールにショートジャケット、ステッキ',
+  ok:'ステッキを振って星を散らし、ウインクで決めポーズ',
+  draw(){const k='kira',H=`url(#hair-${k})`;
+   const wand=(x,y)=>`<line x1="${x}" y1="${y}" x2="${x-4}" y2="${y-30}" stroke="${L}" stroke-width="4.5" stroke-linecap="round"/><line x1="${x}" y1="${y}" x2="${x-4}" y2="${y-30}" stroke="#FF8FB8" stroke-width="2" stroke-linecap="round"/>`+star(x-5,y-36,10,'#FFD54A');
+   return svg(k,{hair:'#D9822E',hairLight:'#F7BE6C',iris:['#7A3E0E','#D08A2A','#FFE08A']},
+   pointEars('#D9822E','#FFF5CC',6)+`<path d="M64,56 C34,70 30,130 44,160 C50,138 58,106 74,80 Z" ${st(H)}/><path d="M136,56 C166,70 170,130 156,160 C150,138 142,106 126,80 Z" ${st(H)}/><circle cx="100" cy="70" r="42" ${st(H)}/>`,
+   `<g transform="rotate(-40 132 176)"><ellipse cx="132" cy="176" rx="17" ry="34" ${st('#D9822E')}/><path d="M118,196 Q132,222 146,196 Q140,212 132,210 Q124,212 118,196 Z" fill="#fff"/></g>`+
+   legs('#FFFFFF')+`<rect x="85" y="214" width="14" height="30" rx="5" ${st('#FFFFFF',2)}/><rect x="101" y="214" width="14" height="30" rx="5" ${st('#FFFFFF',2)}/>`+neck+
+   `<path d="M80,160 H120 L132,196 H68 Z" ${st('#FFE680')}/>${star(86,182,5,'#FFFFFF')}${star(114,184,5,'#FFFFFF')}`+
+   arms('#FFD54A',wand,null)+
+   `<path d="M84,120 Q100,115 116,120 L118,164 H82 Z" ${st('#FFFFFF')}/><path d="M82,120 Q88,116 95,118 L96,152 H80 Z" ${st('#FFD54A',2)}/><path d="M118,120 Q112,116 105,118 L104,152 H120 Z" ${st('#FFD54A',2)}/><path d="M96,124 l4,4 l4,-4 l-4,-3 Z" ${st('#FF8FB8',1.6)}/>`,
+   face(k,{wink:true,mouth:'open'})+bangs(H)+shine+star(66,52,8,'#FFD54A')+star(134,52,8,'#FFD54A')+
+   `<g class="spark">${star(28,34,6,'#FFE680')}${star(174,30,8,'#FFE680')}${star(176,170,5,'#FFE680')}</g>`)}},
+ {k:'moko',name:'もこちゃん',c:'#9BD66B',tint:'#E6F6D8',role:'低い音担当/いちばん年下',
+  look:'こぐまの女の子。まるいくまみみ、パーカーにデニムのショートパンツ、四つ葉のクローバー',
+  ok:'よちよちステップのあと、しりもちをついて「えへへ」',
+  draw(){const k='moko',H=`url(#hair-${k})`,G='#9BD66B';
+   const clover=(x,y)=>`<line x1="${x}" y1="${y}" x2="${x+3}" y2="${y-18}" stroke="${L}" stroke-width="2.5"/>`+[[0,-6],[6,0],[0,6],[-6,0]].map(([dx,dy])=>`<circle cx="${x+3+dx}" cy="${y-23+dy}" r="5" ${st('#5DBB4A',1.8)}/>`).join('');
+   return svg(k,{hair:'#6A4430',hairLight:'#9C7056',iris:['#2E5A22','#5EA040','#BFF0A0']},
+   roundEars('#B07A50','#F2D6B8',16,32)+`<path d="M60,72 C60,28 140,28 140,72 L141,102 Q134,108 128,100 H72 Q66,108 59,102 Z" ${st(H)}/>`,
+   legs('#6FB447')+neck+
+   `<path d="M81,160 H119 L121,190 H102 L100,178 L98,190 H79 Z" ${st('#6B8FC9')}/>`+
+   arms(G,null,clover)+
+   `<path d="M80,120 Q100,114 120,120 L124,168 H76 Z" ${st(G)}/><path d="M100,122 V166" stroke="${L}" stroke-width="1.8"/><path d="M86,150 h28" stroke="${L}" stroke-width="1.6"/><circle cx="94" cy="128" r="2.4" fill="#fff"/><circle cx="106" cy="128" r="2.4" fill="#fff"/>`,
+   face(k,{mouth:'cat'})+
+   `<g ${HT}><path d="M52,92 C52,56 76,42 100,42 C124,42 148,56 148,92 C140,78 128,72 116,74 C110,82 90,82 84,74 C72,72 60,78 52,92 Z" ${st(H,3.6)}/></g>`+shine+
+   `<g class="spark">${note(32,190,'#6FB447')}</g>`,
+   'translate(26 78) scale(.74)')}}
+];
+
+const grid=document.getElementById('grid');
+chars.forEach((ch,i)=>{
+  const el=document.createElement('article');
+  el.className='card';el.dataset.k=ch.k;el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label',ch.name+'のダンスを見る');
+  el.innerHTML=`<div class="stage" style="--tint:${ch.tint}"><div class="fig" style="--d:${-i*.5}s">${ch.draw()}</div></div>
+   <h2 class="name"><span class="chip" style="--c:${ch.c}"></span>${ch.name}</h2>
+   <p class="role">${ch.role}</p>
+   <dl><dt>みため</dt><dd>${ch.look}</dd><dt>せいかいダンス</dt><dd>${ch.ok}</dd></dl>`;
+  grid.appendChild(el);
+});
+function dance(el){el.classList.remove('dance');void el.offsetWidth;el.classList.add('dance');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('dance'),1700)}
+grid.addEventListener('click',e=>{const c=e.target.closest('.card');if(c)dance(c)});
+grid.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('card')){e.preventDefault();dance(e.target)}});
+document.getElementById('all').addEventListener('click',()=>{document.querySelectorAll('.card').forEach((c,i)=>setTimeout(()=>dance(c),i*120))});
+</script>
